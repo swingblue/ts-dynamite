@@ -25,7 +25,7 @@ class Bot {
         if(this.consecutiveLoses>=this.window){
             this.window++;
         }
-        if(this.window > 10){
+        if(this.window > 101){
             this.window=1;
         }
         
