@@ -12,42 +12,41 @@ class Bot {
             D:['W'],
             W:['R','P','S']
     }
-    resultRecord: Array<Result> = new Array();
+    // resultRecord: Array<Result> = new Array();
     window: number = 1;
+    noOfRounds: number = 0;
+    consecutiveLoses: number = 0;
     makeMove(gamestate: Gamestate): BotSelection {
         this.registerLastResult(gamestate);
-        let noOfRounds = gamestate.rounds.length;
-
-        if(noOfRounds < this.window) {
+        this.noOfRounds = gamestate.rounds.length;
+        if(this.noOfRounds < this.window){
             return this.randomShoot(this.randomiser);
         }
-
-        let slicingPoint = Math.max(noOfRounds-this.window, 0);
-        let previousRes = this.resultRecord.slice(slicingPoint);
-        let prevWins = previousRes.reduce((acc, curr) => { return acc + curr; }, 0);
-        if(prevWins == 0) {
-            return this.randomShoot(this.randomiser);
-        }
-
-        let previousPlays = gamestate.rounds.slice(slicingPoint);
-        if(prevWins < this.window/2 * -1){
+        if(this.consecutiveLoses>=this.window){
             this.window++;
-            return this.randomShoot(this.randomiser);
-            // return this.toWin[previousPlays[0].p2][0] as BotSelection;
-        } 
+        }
+        if(this.window > 10){
+            this.window=1;
+        }
         
-        return this.toWin[previousPlays[0].p2][0] as BotSelection;
-        // let move = 'D' as BotSelection;
-        // if(this.myDCount > 0) {
-        //     this.myDCount--;
-        // } else {
-        //     move = this.randomiser[Math.floor(Math.random()*3)];
-        // }
-        // return move;
+        return this.winPrev(gamestate);
     }
     
+    private winPrev(gamestate: Gamestate): BotSelection {
+        
+        let previousRes = gamestate.rounds.slice(Math.max(this.noOfRounds-this.window,0));
+        const lastOpponentMove = previousRes[0].p2;
+        return this.randomShoot(this.toWin[lastOpponentMove] as Array<BotSelection>);
+    }
+
+    private copyOpPrev(gamestate: Gamestate): BotSelection {
+        let previousRes = gamestate.rounds.slice(this.noOfRounds-this.window);
+        const lastOpponentMove = previousRes[0].p2;
+        return lastOpponentMove;
+    }
+
     private randomShoot(choices: Array<BotSelection>){
-        console.log(Math.floor(Math.random()*choices.length))
+        // console.log(Math.floor(Math.random()*choices.length))
         let choice = choices[Math.floor(Math.random()*choices.length)];
         if(choice == 'D' && this.myDCount > 0){
             this.myDCount--;
@@ -63,15 +62,19 @@ class Bot {
         }
         const lastOpponentMove = gamestate.rounds[noOfRounds-1].p2;
         const myLastMove = gamestate.rounds[noOfRounds-1].p1;
+        console.log(myLastMove + ' vs ' + lastOpponentMove);
         if(lastOpponentMove == myLastMove){
-            this.resultRecord.push(0);
+            // this.resultRecord.push(0);
+            this.consecutiveLoses++;
             return;
         }
         let toWinOp = this.toWin[lastOpponentMove] as Array<String>;
         if(toWinOp.includes(myLastMove)){
-            this.resultRecord.push(1);
+            // this.resultRecord.push(1);
+            this.consecutiveLoses = 0;
         } else {
-            this.resultRecord.push(-1);
+            // this.resultRecord.push(-1);
+            this.consecutiveLoses++;
         }
     }
 }
