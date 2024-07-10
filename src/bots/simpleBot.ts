@@ -16,6 +16,7 @@ class Bot {
     window: number = 1;
     noOfRounds: number = 0;
     consecutiveLoses: number = 0;
+    consecutiveWaterBombs: number = 0;
     makeMove(gamestate: Gamestate): BotSelection {
         this.registerLastResult(gamestate);
         this.noOfRounds = gamestate.rounds.length;
@@ -24,6 +25,9 @@ class Bot {
         }
         if(this.consecutiveLoses>=this.window){
             this.window++;
+            if(this.consecutiveLoses == 10){
+                this.window = 1;
+            }
         }
         if(this.window > 101){
             this.window=1;
@@ -36,12 +40,24 @@ class Bot {
         
         let previousRes = gamestate.rounds.slice(Math.max(this.noOfRounds-this.window,0));
         const lastOpponentMove = previousRes[0].p2;
-        return this.randomShoot(this.toWin[lastOpponentMove] as Array<BotSelection>);
+        let choice = this.randomShoot(this.toWin[lastOpponentMove] as Array<BotSelection>);
+        if(choice == 'W' && this.consecutiveLoses>this.consecutiveWaterBombs && this.consecutiveWaterBombs > 10){
+            return this.randomShoot(this.randomiser);
+        }
+        return choice;
     }
 
     private copyOpPrev(gamestate: Gamestate): BotSelection {
-        let previousRes = gamestate.rounds.slice(this.noOfRounds-this.window);
+        let previousRes = gamestate.rounds.slice(Math.max(this.noOfRounds-this.window,0));
         const lastOpponentMove = previousRes[0].p2;
+        if(lastOpponentMove == 'D'){
+            if(this.myDCount == 0){
+                return 'R';
+            } else {
+                this.myDCount--;
+                return 'D';
+            }
+        }
         return lastOpponentMove;
     }
 
@@ -51,6 +67,9 @@ class Bot {
         if(choice == 'D' && this.myDCount > 0){
             this.myDCount--;
             return 'D'
+        }
+        if(choice == 'W' && this.opDCount == 0){
+            return this.randomShoot(this.randomiser);
         }
         return choices.length == 2 ? choices[0] : choice;
     }
@@ -62,7 +81,15 @@ class Bot {
         }
         const lastOpponentMove = gamestate.rounds[noOfRounds-1].p2;
         const myLastMove = gamestate.rounds[noOfRounds-1].p1;
+        if(myLastMove == 'W'){
+            this.consecutiveWaterBombs++;
+        } else {
+            this.consecutiveWaterBombs = 0;
+        }
         console.log(myLastMove + ' vs ' + lastOpponentMove);
+        if(lastOpponentMove == 'D'){
+            this.opDCount--;
+        }
         if(lastOpponentMove == myLastMove){
             // this.resultRecord.push(0);
             this.consecutiveLoses++;
